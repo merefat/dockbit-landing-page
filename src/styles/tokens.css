@@ -1,0 +1,31 @@
+/* DockBit brand system — ported from the draft */
+:root{
+  --bg:#ffffff;--s0:#f6f8f9;--s1:#ffffff;--s2:#eef3f5;--s3:#d8e0e4;
+  --line:rgba(10,15,20,.09);--line2:rgba(10,15,20,.16);
+  --ink:#101820;--mut:#4f5b64;--dim:#78848c;
+  --brand:#20BBD2;--teal:#20BBD2;--bit:#F39C12;--on-brand:#07171a;
+  --brand-soft:rgba(32,187,210,.13);--bit-soft:rgba(243,156,18,.16);--glow:rgba(32,187,210,.22);
+  --glass:rgba(255,255,255,.82);--shadow:0 20px 60px rgba(20,30,50,.12);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --sans:"Sora Variable",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono Variable",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+/* Site-wide dark theme — light stays the default; toggled via data-theme on <html> */
+html.t-dark,html[data-theme='dark']{
+  --bg:#0B0D11;--s0:#0E1115;--s1:#13171C;--s2:#1A1F26;--s3:#232932;
+  --line:rgba(255,255,255,.075);--line2:rgba(255,255,255,.14);
+  --ink:#EEF1F5;--mut:#A3ABB7;--dim:#7C8491;
+  --brand-soft:rgba(32,187,210,.14);--glow:rgba(32,187,210,.28);
+  --glass:rgba(22,27,34,.8);--shadow:0 20px 60px rgba(0,0,0,.35);
+  color-scheme:dark;
+}
+/* Dark objects (rack, chassis, phone…) use the dark Obsidian Flux tokens */
+.dk{
+  --bg:#0B0D11;--s0:#0E1115;--s1:#13171C;--s2:#1A1F26;--s3:#232932;
+  --line:rgba(255,255,255,.075);--line2:rgba(255,255,255,.14);
+  --ink:#EEF1F5;--mut:#A3ABB7;--dim:#7C8491;
+  --brand:#20BBD2;--teal:#20BBD2;--bit:#F39C12;--on-brand:#07171a;
+  --brand-soft:rgba(32,187,210,.14);--glow:rgba(32,187,210,.28);
+  --glass:rgba(22,27,34,.8);--shadow:0 20px 60px rgba(0,0,0,.35);
+  color:var(--ink);
+}

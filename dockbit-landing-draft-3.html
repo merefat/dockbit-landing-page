@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DockBit — Self-hosted PaaS on your own servers</title>
+<meta name="description" content="DockBit deploys, monitors and manages your websites, apps, databases and mobile apps on servers you own. On the web, App Store and Google Play.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* DockBit brand system */
+:root{
+  --bg:#ffffff;--s0:#f6f8f9;--s1:#ffffff;--s2:#eef3f5;--s3:#d8e0e4;
+  --line:rgba(10,15,20,.09);--line2:rgba(10,15,20,.16);
+  --ink:#101820;--mut:#4f5b64;--dim:#78848c;
+  --brand:#20BBD2;--teal:#20BBD2;--bit:#F39C12;--on-brand:#07171a;
+  --brand-soft:rgba(32,187,210,.13);--bit-soft:rgba(243,156,18,.16);--glow:rgba(32,187,210,.22);
+  --glass:rgba(255,255,255,.82);--shadow:0 20px 60px rgba(20,30,50,.12);
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --sans:"Sora",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+/* Dark objects (rack, chassis, phone…) use the dark Obsidian Flux tokens */
+.dk{
+  --bg:#0B0D11;--s0:#0E1115;--s1:#13171C;--s2:#1A1F26;--s3:#232932;
+  --line:rgba(255,255,255,.075);--line2:rgba(255,255,255,.14);
+  --ink:#EEF1F5;--mut:#A3ABB7;--dim:#7C8491;
+  --brand:#20BBD2;--teal:#20BBD2;--bit:#F39C12;--on-brand:#07171a;
+  --brand-soft:rgba(32,187,210,.14);--glow:rgba(32,187,210,.28);
+  --glass:rgba(22,27,34,.8);--shadow:0 20px 60px rgba(0,0,0,.35);
+  color:var(--ink);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{width:min(1120px,calc(100% - 48px));margin:0 auto}
+h1 em,.h2 em{font-style:normal;color:var(--brand)}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:9px}
+.eyebrow::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--bit)}
+.h2{font-size:clamp(28px,3.3vw,40px);line-height:1.08;letter-spacing:-.03em;font-weight:600;margin:12px 0 0}
+.lede{font-size:15.5px;line-height:1.6;color:var(--mut);max-width:500px;margin:12px 0 0}
+.sec{padding:88px 0}
+.head{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:end}
+.btn{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border-radius:9px;font-size:13.5px;font-weight:600;border:1px solid var(--line2);transition:.25s var(--ease)}
+.btn.primary{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.btn:hover{box-shadow:0 0 24px var(--glow)}
+.led{width:7px;height:7px;border-radius:50%;background:var(--s3);flex-shrink:0}
+.led.on{background:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);animation:blink 2.6s infinite}
+.led.on.d2{animation-delay:.7s}.led.on.d3{animation-delay:1.4s}
+@keyframes blink{0%,86%,100%{opacity:1}90%{opacity:.3}}
+
+/* LOGO — the bit docks into the D */
+.logo{display:flex;align-items:center;gap:10px;font-weight:650;font-size:20px;letter-spacing:-.035em}
+.mark{position:relative;width:26px;height:26px;display:inline-block}
+.mark .d{position:absolute;inset:0;border:3px solid var(--brand);border-left-color:transparent;border-radius:50%;transform:rotate(-45deg)}
+.mark .b{position:absolute;width:8px;height:8px;border-radius:2px;background:var(--bit);left:2px;top:9px;transition:transform .6s var(--ease)}
+.logo:hover .mark .b,.mark.docking .b{transform:translateX(7px)}
+
+/* NAV */
+.nav{height:68px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:20;background:rgba(255,255,255,.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:0 max(24px,calc((100% - 1120px)/2))}
+.navlinks{display:flex;gap:26px;font-size:13.5px;color:var(--mut)}
+.navlinks a:hover{color:var(--ink)}
+.nav .btn{height:34px}
+
+/* STORE BADGES — official artwork goes in /badges; text pill shows until then */
+.stores{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;height:44px;border-radius:9px;transition:transform .25s var(--ease)}
+.badge:hover{transform:translateY(-2px)}
+.badge img{height:44px;width:auto;display:block}
+.badge .fb{display:none}
+.badge.fallback img{display:none}
+.badge.fallback .fb{display:flex;flex-direction:column;justify-content:center;height:44px;padding:0 16px;border-radius:9px;background:#000;color:#fff;border:1px solid #a6a6a6;min-width:136px}
+.badge .fb small{font-size:10px;line-height:1.1;opacity:.85}
+.badge .fb b{font-size:15px;font-weight:600;line-height:1.2;letter-spacing:-.01em}
+
+/* HERO */
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;padding:64px 0 80px}
+.hero h1{font-size:clamp(40px,5.2vw,64px);line-height:1.02;letter-spacing:-.035em;font-weight:600;margin:16px 0 0}
+.hero p{font-size:16.5px;line-height:1.6;color:var(--mut);max-width:480px;margin:18px 0 0}
+.install{margin-top:24px;display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--line2);border-radius:10px;padding:5px 5px 5px 14px;font:12.5px var(--mono);max-width:480px}
+.install span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--mut)}
+.install span b{color:var(--brand);font-weight:500}
+.install button{border:0;background:var(--s2);border-radius:7px;padding:8px 11px;font:12px var(--mono);flex-shrink:0;margin-left:auto}
+.hero .stores{margin-top:14px}
+
+.rack-wrap{position:relative;display:flex;justify-content:flex-end}
+.rack{position:relative;width:min(380px,100%);background:var(--s1);border:1px solid var(--line2);border-radius:16px 16px 6px 6px;padding:16px 34px 20px;box-shadow:var(--shadow)}
+.rack::before,.rack::after{content:"";position:absolute;top:16px;bottom:20px;width:10px;background:radial-gradient(circle,var(--s3) 1.8px,transparent 2.3px) center top/10px 13px}
+.rack::before{left:12px}.rack::after{right:12px}
+.unit{height:40px;background:var(--s2);border:1px solid var(--line);border-radius:5px;margin-bottom:5px;display:flex;align-items:center;gap:10px;padding:0 12px;font:12px var(--mono)}
+.unit .src{margin-left:auto;color:var(--dim);font-size:11px}
+.unit.u2{height:84px;align-items:flex-start;padding-top:13px;position:relative}
+.unit.u2::after{content:"";position:absolute;left:12px;right:12px;bottom:10px;height:30px;background:repeating-linear-gradient(0deg,var(--s3) 0 2px,transparent 2px 6px)}
+.unit.empty{background:transparent;border:1px dashed var(--line2);color:var(--dim);justify-content:center}
+.rack-feet{position:absolute;bottom:-10px;left:28px;right:28px;display:flex;justify-content:space-between}
+.rack-feet i{width:40px;height:10px;background:var(--s1);border:1px solid var(--line2);border-top:0;border-radius:0 0 4px 4px}
+.hang{position:absolute;left:0;top:56%;background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--line2);border-radius:12px;padding:11px 13px;font-size:12px;color:var(--mut);line-height:1.45;box-shadow:var(--shadow)}
+.hang b{display:block;font-size:20px;font-weight:600;letter-spacing:-.03em;color:var(--ink)}
+
+/* PROBLEM */
+.model{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:40px}
+.chaos{position:relative;min-height:300px;border:1px dashed var(--line2);border-radius:16px}
+.chip{position:absolute;font:12px var(--mono);background:var(--s1);border:1px solid var(--line);color:var(--mut);padding:7px 10px;border-radius:7px;white-space:nowrap;box-shadow:0 2px 0 var(--line)}
+.chip.hot{border-color:rgba(244,153,35,.5);color:#a25f0a}
+.chaos-label{position:absolute;left:16px;bottom:13px;font-size:12px;color:var(--dim)}
+.calm{background:var(--s1);border:1px solid var(--line2);border-radius:16px;padding:20px 22px}
+.calm .top{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--dim);padding-bottom:12px;border-bottom:1px solid var(--line)}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:16px 0}
+.flow div{background:var(--s2);border:1px solid var(--line);border-radius:9px;padding:10px;font-size:13px;font-weight:600;position:relative}
+.flow div small{display:block;font-size:11px;font-weight:400;color:var(--dim);margin-top:3px}
+.flow div:not(:last-child)::after{content:"→";position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:var(--brand);font-size:11px;z-index:1}
+.calm ul{list-style:none;margin:0;padding:0}
+.calm li{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}
+.calm li span{font:12px var(--mono);color:var(--dim)}
+.calm li span.ok{color:var(--brand)}
+
+/* DEPLOY */
+.pipe{display:grid;grid-template-columns:170px 40px 1fr;margin-top:44px;align-items:center}
+.ports{display:grid;gap:7px}
+.port{display:flex;align-items:center;gap:9px;border:1px solid var(--line2);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:600;background:var(--s1)}
+.jack{width:12px;height:12px;border-radius:50%;border:3px solid var(--s3);flex-shrink:0}
+.port.on{border-color:var(--brand)}
+.port.on .jack{border-color:var(--brand)}
+.port small{margin-left:auto;font:11px var(--mono);color:var(--dim)}
+.merge{position:relative;align-self:stretch;margin:18px 0}
+.merge::before{content:"";position:absolute;left:0;top:0;bottom:0;width:20px;border:1.5px solid var(--line2);border-left:0;border-radius:0 12px 12px 0}
+.merge::after{content:"";position:absolute;left:20px;right:0;top:50%;height:1.5px;background:var(--brand)}
+.stages{display:grid;grid-template-columns:repeat(5,1fr)}
+.stage{border:1px solid var(--line2);border-left-width:0;padding:14px 13px;min-height:132px;display:flex;flex-direction:column;background:var(--s1)}
+.stage:first-child{border-left-width:1px;border-radius:14px 0 0 14px}
+.stage.dk{border-radius:0 14px 14px 0;background:var(--s1);border-color:var(--s1)}
+.stage .n{font:11px var(--mono);color:var(--dim)}
+.stage.dk .n{color:var(--brand)}
+.stage h4{font-size:15px;margin:9px 0 5px;font-weight:600}
+.stage p{font-size:12.5px;line-height:1.45;color:var(--mut);margin:0}
+.stage code{margin-top:auto;padding-top:10px;font:11px var(--mono);color:var(--dim)}
+.stage.dk code{color:var(--brand)}
+.notes{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+.notes span{font-size:12px;color:var(--mut);background:var(--s1);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+
+/* MARKETPLACE */
+.bays{display:grid;grid-template-columns:.8fr 1.2fr;gap:48px;align-items:center;margin-top:80px}
+.chassis{background:var(--s0);border:1px solid var(--line2);border-radius:16px;padding:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px;box-shadow:var(--shadow)}
+.sled{display:flex;align-items:center;gap:12px;background:var(--s1);border:1px solid var(--line);border-radius:7px;height:54px;padding-right:13px;overflow:hidden;transition:transform .35s var(--ease),border-color .25s}
+.sled .grip{width:30px;align-self:stretch;background:repeating-linear-gradient(90deg,var(--s3) 0 2px,transparent 2px 5px) 8px 11px/16px calc(100% - 22px) no-repeat;border-right:1px solid var(--line);flex-shrink:0}
+.sled b{display:block;font-size:13.5px;font-weight:600}
+.sled small{display:block;font-size:11px;color:var(--dim);margin-top:2px}
+.sled .go{margin-left:auto;font:11px var(--mono);color:var(--brand);display:none}
+.sled .led{margin-left:auto}
+.sled:hover{transform:translateX(10px);border-color:rgba(38,205,231,.4)}
+.sled:hover .go{display:block}.sled:hover .led{display:none}
+.sled.blank{background:transparent;border-style:dashed;border-color:var(--line2);color:var(--dim)}
+.facts{list-style:none;padding:0;margin:20px 0 0}
+.facts li{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--mut)}
+.facts li span{font-size:12px;font-weight:600;color:var(--ink)}
+
+/* MACHINES (dark band) */
+.band-dk{background:var(--bg)}
+.band-lt{background:var(--s0);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.sky-scroll{overflow-x:auto;margin-top:40px}
+.skyline{position:relative;min-width:680px;height:310px;display:flex;align-items:flex-end;gap:18px;border-bottom:1px solid var(--line2)}
+.overlay{position:absolute;top:18px;left:0;right:0;border-top:1.5px dashed var(--brand);opacity:.7}
+.overlay span{position:absolute;right:0;top:-22px;font:11px var(--mono);color:var(--brand)}
+.box{position:relative;flex:1;background:var(--s1);border:1px solid var(--line2);border-bottom:0;border-radius:12px 12px 0 0;padding:14px}
+.box::before{content:"";position:absolute;left:50%;bottom:100%;height:var(--drop);border-left:1px dashed var(--line2)}
+.box::after{content:"";position:absolute;left:calc(50% - 4px);bottom:calc(100% + var(--drop) - 4px);width:8px;height:8px;border-radius:2px;background:var(--bit)}
+.box .host{font:12.5px var(--mono)}
+.role{display:inline-block;margin-top:6px;font-size:11px;font-weight:600;border:1px solid var(--line2);border-radius:7px;padding:2px 7px;color:var(--mut)}
+.meter{margin-top:11px;font:11px var(--mono);color:var(--dim)}
+.meter i{display:block;height:3px;background:var(--s3);margin-top:5px;border-radius:2px;overflow:hidden}
+.meter i::after{content:"";display:block;height:100%;width:var(--v);background:var(--brand)}
+.box .slots{position:absolute;left:14px;right:14px;bottom:14px;display:grid;gap:4px}
+.box .slots i{height:13px;border:1px solid var(--line);border-radius:3px;background:repeating-linear-gradient(90deg,transparent 0 6px,var(--s2) 6px 8px)}
+.box.add{background:transparent;border:1px dashed var(--line2);border-bottom:0;display:flex;align-items:center;justify-content:center;font:12px var(--mono);color:var(--dim)}
+.box.add::before,.box.add::after{display:none}
+.verbs{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:30px}
+.verb b{font-size:15px;font-weight:600}
+.verb p{font-size:13px;line-height:1.5;color:var(--mut);margin:5px 0 0}
+
+/* DOMAINS */
+.url-big{margin-top:52px;display:flex;flex-wrap:wrap;align-items:flex-end;font:500 clamp(22px,4.2vw,54px)/1.15 var(--mono);letter-spacing:-.04em}
+.seg{position:relative;border-bottom:2px solid var(--ink);padding-bottom:8px;margin-right:.06em}
+.seg sup{position:absolute;top:-14px;left:0;font:600 10px var(--sans);letter-spacing:0;background:var(--ink);color:var(--bg);border-radius:99px;width:18px;height:18px;display:grid;place-items:center}
+.seg.a{color:var(--brand);border-color:var(--brand)}
+.seg.a sup{background:var(--brand);color:var(--on-brand)}
+.seg.dim{color:var(--dim);border-color:var(--line2)}
+.callouts{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin-top:30px}
+.call .n{font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.call h4{font-size:15px;margin:7px 0 5px;font-weight:600}
+.call p{font-size:13px;line-height:1.5;color:var(--mut);margin:0}
+.uptime{margin-top:36px;background:var(--s1);border:1px solid var(--line2);border-radius:14px;padding:16px 18px}
+.uptime .row{display:flex;justify-content:space-between;font:12px var(--mono);color:var(--dim);gap:12px;flex-wrap:wrap}
+.uptime .row b{color:var(--ink);font-weight:500}
+.ticks{display:grid;grid-template-columns:repeat(90,1fr);gap:2px;height:30px;margin:12px 0 8px;align-items:end}
+.ticks i{background:var(--brand);opacity:.5;border-radius:1px}
+.ticks i.inc{background:var(--bit);opacity:1}
+
+/* DATA */
+.strata-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:48px;align-items:end}
+.ground-app{display:flex;gap:6px;margin-bottom:10px;padding-left:20px}
+.ground-app span{font:12px var(--mono);background:#11151B;color:#EEF1F5;padding:7px 11px;border-radius:7px 7px 0 0}
+.layer{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:22px 20px 15px;margin-top:-10px;clip-path:polygon(0 10px,7% 3px,16% 11px,27% 2px,39% 9px,52% 0,64% 10px,77% 4px,89% 10px,100% 2px,100% 100%,0 100%)}
+.layer b{font-size:14px;font-weight:600}
+.layer small{display:block;font:11px var(--mono);margin-top:3px;opacity:.7}
+.layer span{font:11.5px var(--mono);text-align:right}
+.l1{background:var(--s1);margin-top:0}
+.l2{background:var(--s3)}
+.l3{background:#535C6A;color:#EEF1F5}
+.l4{background:#11151B;color:#EEF1F5;border-radius:0 0 14px 14px}
+.l4 span{color:#26CDE7}
+.tape{margin-top:36px;background:var(--s1);border:1px solid var(--line2);border-radius:999px;padding:10px 20px 10px 10px;display:flex;align-items:center;gap:14px}
+.reel{width:42px;height:42px;border-radius:50%;flex-shrink:0;background:radial-gradient(circle,var(--s1) 0 5px,transparent 6px),conic-gradient(var(--s3) 0 30deg,var(--s2) 30deg 60deg,var(--s3) 60deg 150deg,var(--s2) 150deg 180deg,var(--s3) 180deg 270deg,var(--s2) 270deg 300deg,var(--s3) 300deg);transition:transform .2s}
+.tape-mid{flex:1;min-width:0}
+.tape-out{display:flex;justify-content:space-between;gap:10px;font:12px var(--mono);color:var(--dim);margin-bottom:6px;flex-wrap:wrap}
+.tape-out b{color:var(--ink);font-weight:500}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:repeating-linear-gradient(90deg,var(--s3) 0 1px,transparent 1px 4.16%) center/100% 9px no-repeat;margin:0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:5px;height:20px;border-radius:2px;background:var(--bit);cursor:grab}
+input[type=range]::-moz-range-thumb{width:5px;height:20px;border:0;border-radius:2px;background:var(--bit);cursor:grab}
+.restore{flex-shrink:0;border:0;background:var(--brand);color:var(--on-brand);font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:9px}
+
+/* SECURITY + SAGE */
+.guard{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:40px}
+.panel{background:var(--s1);border:1px solid var(--line2);border-radius:16px;padding:22px}
+.panel h3{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:0}
+.panel .sub{font-size:13px;color:var(--mut);margin:5px 0 0;line-height:1.5}
+.ringbox{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center;margin-top:18px}
+.rings{position:relative;width:100%;aspect-ratio:1}
+.ring{position:absolute;border-radius:50%;border:1px solid var(--line2);display:flex;justify-content:center;transition:background .25s,border-color .25s}
+.ring>span{position:absolute;top:0;transform:translateY(-50%);background:var(--s1);border:1px solid var(--line2);border-radius:7px;padding:2px 7px;font-size:10.5px;font-weight:600;white-space:nowrap;color:var(--mut)}
+.r0{inset:0;border-style:dashed}
+.r1{inset:11%}.r2{inset:22%}.r3{inset:33%}
+.core{position:absolute;inset:43%;border-radius:50%;background:var(--brand);color:var(--on-brand);display:grid;place-items:center;font-size:10px;font-weight:700}
+.ring.lit{background:var(--brand-soft);border-color:var(--brand)}
+.ring-list{list-style:none;margin:0;padding:0}
+.ring-list li{padding:8px 0;border-top:1px solid var(--line);font-size:12.5px;color:var(--mut);line-height:1.45;cursor:default}
+.ring-list li b{display:block;color:var(--ink);font-size:13px;transition:color .2s}
+.ring-list li:hover b{color:var(--brand)}
+.msgs{display:grid;gap:10px;margin-top:16px}
+.msg{max-width:90%;font-size:13px;line-height:1.5}
+.msg .who{font-size:11px;font-weight:600;color:var(--dim);margin-bottom:3px}
+.msg.you{justify-self:end;background:#11151B;color:#EEF1F5;padding:9px 12px;border-radius:12px 12px 4px 12px}
+.msg.you .who{color:#A3ABB7}
+.msg.sage{background:var(--s2);padding:11px 13px;border-radius:12px 12px 12px 4px}
+.msg.sage .who{color:var(--brand)}
+.diff{margin-top:8px;background:var(--bg);border-radius:9px;padding:9px 11px;font:11.5px/1.7 var(--mono);overflow-x:auto;white-space:pre}
+.diff .m{color:var(--dim);text-decoration:line-through}
+.diff .p{color:var(--brand)}
+.gate{border-top:1px dashed var(--line2);margin-top:14px;padding-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.gate .pol{font-size:12px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.gate .btns{display:flex;gap:6px}
+.gate button{height:32px;border:1px solid var(--line2);background:transparent;border-radius:9px;padding:0 12px;font-size:13px;font-weight:600}
+.gate button.yes{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.gate .done{font-size:12.5px;display:none;align-items:center;gap:8px;color:var(--mut)}
+.gate.approved .btns{display:none}.gate.approved .done{display:flex}
+
+/* MOBILE APP */
+.mobile{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+.phone-stage{position:relative;height:440px;display:flex;justify-content:center}
+.phone{position:relative;width:220px;height:440px;border-radius:38px;background:var(--s1);border:1px solid var(--line2);padding:12px;box-shadow:0 30px 70px rgba(20,30,50,.25);transform:rotate(-4deg)}
+.phone::before{content:"";position:absolute;top:12px;left:50%;width:70px;height:20px;margin-left:-35px;border-radius:99px;background:var(--bg)}
+.screen{height:100%;border-radius:28px;background:var(--bg);padding:44px 14px 14px;overflow:hidden}
+.screen .t{font-size:11px;color:var(--dim)}
+.screen .h{font-size:20px;font-weight:600;letter-spacing:-.03em;margin:3px 0 14px}
+.srow{display:flex;align-items:center;gap:8px;background:var(--s1);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:6px;font-size:12px}
+.srow span{margin-left:auto;font:10.5px var(--mono);color:var(--dim)}
+.toast{position:absolute;background:var(--glass);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line2);border-radius:14px;padding:10px 12px;font-size:12px;line-height:1.4;width:230px;box-shadow:var(--shadow);display:flex;gap:10px;align-items:flex-start;color:var(--mut)}
+.toast b{display:block;font-size:12.5px;color:var(--ink)}
+.toast .ic{width:26px;height:26px;border-radius:7px;background:var(--s2);display:grid;place-items:center;flex-shrink:0;font-weight:700}
+.toast.t1{top:40px;right:0;transform:rotate(2deg)}
+.toast.t2{bottom:70px;left:0;transform:rotate(-2deg)}
+.toast.t2 .ic{background:var(--bit-soft);color:#a25f0a}
+.mlist{list-style:none;padding:0;margin:20px 0 22px}
+.mlist li{display:flex;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--mut)}
+.mlist li::before{content:"";width:6px;height:6px;margin-top:7px;border-radius:2px;background:var(--brand);flex-shrink:0}
+.mlist li b{color:var(--ink);font-weight:600}
+
+/* TOUR */
+.tour{margin-top:36px;background:var(--s0);border-radius:18px;padding:12px}
+.switchbank{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}
+.sw{border:1px solid var(--line);background:var(--s1);border-radius:10px;padding:10px;text-align:left;display:flex;flex-direction:column;gap:10px;font-size:12px;font-weight:600;color:var(--dim);transition:.2s var(--ease)}
+.sw .tog{width:24px;height:13px;border-radius:99px;background:var(--s3);position:relative;transition:.2s}
+.sw .tog::after{content:"";position:absolute;left:2px;top:2px;width:9px;height:9px;border-radius:50%;background:var(--dim);transition:.2s var(--ease)}
+.sw.active{color:var(--ink);border-color:var(--line2)}
+.sw.active .tog{background:var(--brand)}
+.sw.active .tog::after{left:13px;background:var(--bg)}
+.tour-body{display:grid;grid-template-columns:.75fr 1.25fr;gap:24px;padding:26px 16px 14px}
+.tour-body h3{font-size:24px;letter-spacing:-.03em;margin:0;font-weight:600}
+.tour-body .td{color:var(--mut);font-size:13.5px;line-height:1.55;margin:8px 0 0}
+.track{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
+.track button{border:0;background:transparent;text-align:left;padding:0 0 10px;font-size:13px;color:var(--dim);position:relative}
+.track button span{display:block;font:11px var(--mono);margin-bottom:3px}
+.track button.active{color:var(--ink)}
+.track button.active::after{content:"";position:absolute;left:0;right:10px;bottom:-1px;height:2px;background:var(--brand)}
+.pd{color:var(--mut);font-size:13px;margin:14px 0 12px}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.chips div{border:1px solid var(--line);border-radius:10px;padding:11px;min-height:72px;display:flex;flex-direction:column;justify-content:space-between;background:var(--s1)}
+.chips i{font:normal 10.5px var(--mono);color:var(--dim)}
+.chips b{font-size:13px;font-weight:600}
+.chips div:last-child{border-color:var(--brand)}
+.chips div:last-child i{color:var(--brand)}
+
+/* STAIRS */
+.stairs{display:grid;grid-template-columns:repeat(6,1fr);align-items:end;margin-top:40px}
+.stair{height:calc(118px + var(--i) * 30px);border-top:1.5px solid var(--ink);border-left:1.5px solid var(--ink);padding:13px 13px 14px;display:flex;flex-direction:column;background:var(--bg)}
+.stair:nth-child(even){background:var(--s0)}
+.stair.dk{background:var(--s1);border-color:var(--s1);border-radius:0 14px 0 0}
+.stair .n{font:11px var(--mono);color:var(--dim)}
+.stair.dk .n{color:var(--bit)}
+.stair h4{font-size:15px;margin:7px 0 4px;font-weight:600}
+.stair p{font-size:12.5px;line-height:1.45;color:var(--mut);margin:0}
+.stair code{margin-top:auto;font:11px var(--mono);color:var(--brand)}
+
+/* BACK PANEL */
+.backpanel{margin-top:36px;background:var(--s1);border-radius:18px;padding:22px;display:grid;grid-template-columns:110px 1fr;gap:26px;align-items:start;box-shadow:var(--shadow)}
+.fan{aspect-ratio:1;border-radius:50%;border:1px solid var(--line2);background:repeating-radial-gradient(circle,transparent 0 4px,var(--s2) 4px 5px);position:relative;overflow:hidden}
+.fan::before{content:"";position:absolute;inset:14%;border-radius:50%;background:conic-gradient(var(--s3) 0 40deg,transparent 40deg 72deg,var(--s3) 72deg 112deg,transparent 112deg 144deg,var(--s3) 144deg 184deg,transparent 184deg 216deg,var(--s3) 216deg 256deg,transparent 256deg 288deg,var(--s3) 288deg 328deg,transparent 328deg);animation:spin 3s linear infinite}
+.fan::after{content:"";position:absolute;inset:40%;border-radius:50%;background:var(--s2);border:1px solid var(--line2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.fan-label{font:11px var(--mono);color:var(--dim);margin-top:10px;line-height:1.5}
+.portgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px 14px}
+.pt .hole{height:26px;background:var(--bg);box-shadow:inset 0 0 0 1px var(--line2);transition:background .2s}
+.pt.rj .hole{clip-path:polygon(0 0,100% 0,100% 72%,74% 72%,74% 100%,26% 100%,26% 72%,0 72%)}
+.pt.usb .hole{height:14px;margin:6px 0;border-radius:4px}
+.pt.hd .hole{clip-path:polygon(0 0,100% 0,100% 60%,88% 100%,12% 100%,0 60%)}
+.pt.rd .hole{width:26px;border-radius:50%}
+.pt:hover .hole{background:var(--brand)}
+.pt b{display:block;margin-top:9px;font-size:13px;font-weight:600}
+.pt span{display:block;font-size:12px;color:var(--mut);margin-top:2px;line-height:1.4}
+
+/* FINAL */
+.faceplate{position:relative;background:var(--s1);border-radius:20px;padding:44px 52px;display:grid;grid-template-columns:1fr auto;gap:32px;align-items:center;overflow:hidden;box-shadow:var(--shadow)}
+.faceplate::before,.faceplate::after{content:"";position:absolute;top:50%;width:8px;height:8px;margin-top:-26px;border-radius:50%;background:var(--s3);box-shadow:0 44px 0 var(--s3)}
+.faceplate::before{left:18px}.faceplate::after{right:18px}
+.faceplate h2{font-size:clamp(32px,4.4vw,52px);line-height:1.02;letter-spacing:-.035em;margin:0;font-weight:600}
+.faceplate h2 em{font-style:normal;color:var(--brand)}
+.faceplate p{color:var(--mut);font-size:15px;line-height:1.6;margin:12px 0 20px;max-width:440px}
+.faceplate .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.power{width:118px;height:118px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;position:relative;transition:.3s var(--ease)}
+.power::before{content:"";position:absolute;inset:10px;border-radius:50%;border:1px solid var(--line);transition:.3s}
+.power:hover{border-color:var(--brand);box-shadow:0 0 24px var(--glow)}
+.power:hover::before{border-color:var(--brand)}
+.power span{position:absolute;bottom:-24px;font-size:11px;color:var(--dim);white-space:nowrap}
+.footer{border-top:1px solid var(--line);margin-top:70px;padding:22px 0 34px;display:flex;justify-content:space-between;gap:16px;font-size:12.5px;color:var(--dim)}
+
+/* Refinements: DockBit brand, clearer mobile and workflow layouts */
+.hero h1{font-weight:600;letter-spacing:-.055em}
+.mobile{grid-template-columns:1.08fr .92fr;gap:76px;padding-top:14px;padding-bottom:14px}
+.phone-stage{height:500px;align-items:center;isolation:isolate}
+.phone{width:238px;height:468px;transform:rotate(-7deg);box-shadow:18px 24px 0 rgba(16,24,32,.05),0 32px 70px rgba(16,24,32,.18)}
+.phone::after{content:"";position:absolute;inset:-18px;border:1px solid rgba(32,187,210,.25);border-radius:52px;transform:rotate(7deg);z-index:-1}
+.toast{width:240px;border-radius:12px;box-shadow:0 18px 40px rgba(16,24,32,.12)}
+.toast.t1{top:54px;right:-24px}.toast.t2{bottom:66px;left:-22px}
+.mobile-orbit{position:absolute;z-index:-1;border:1px solid rgba(32,187,210,.28);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dim);font:10px var(--mono);letter-spacing:.08em}
+.orbit-a{width:410px;height:300px;transform:rotate(-18deg)}.orbit-b{width:350px;height:390px;transform:rotate(28deg);border-color:rgba(243,156,18,.28)}
+.mobile-orbit i{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--brand);top:16%;right:15%;box-shadow:0 0 0 6px var(--brand-soft)}
+.orbit-b i{top:auto;right:auto;bottom:18%;left:13%;background:var(--bit);box-shadow:0 0 0 6px var(--bit-soft)}
+.mobile-actions{margin:26px 0 24px;border-top:1px solid var(--line2)}
+.mobile-actions div{display:flex;align-items:center;gap:18px;padding:15px 0;border-bottom:1px solid var(--line)}
+.mobile-actions b{font:11px var(--mono);color:var(--brand)}.mobile-actions span{font-size:14px;font-weight:500;color:var(--ink)}
+.tour{margin-top:32px;padding:18px 20px 22px;background:#101820;border-radius:18px;color:#fff}
+.tour .switchbank{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,.13)}
+.tour .sw{min-width:100px;flex:1 1 105px;min-height:62px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);color:#aeb9c1;border-radius:9px;padding:10px 12px;gap:8px}
+.tour .sw.active{background:rgba(32,187,210,.12);border-color:#20BBD2;color:#fff}
+.tour .sw .tog{width:30px;height:16px;background:#4b5962}.tour .sw .tog::after{width:12px;height:12px;left:2px;top:2px;background:#c4cdd2}
+.tour .sw.active .tog{background:#20BBD2}.tour .sw.active .tog::after{left:16px;background:#101820}
+.tour-body{display:grid;grid-template-columns:.7fr 1.3fr;gap:36px;padding:26px 4px 0}
+.tour-body h3{font-size:26px;color:#fff}.tour-body .td{font-size:14px;color:#b6c0c7;max-width:300px}
+.track{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;border:0}
+.faceplate{background:#101820;border-radius:18px;padding:54px 58px;box-shadow:none;min-height:270px}
+.faceplate::before,.faceplate::after{display:none}
+.faceplate h2{font-size:clamp(38px,5vw,60px);max-width:700px;color:#fff}
+.faceplate p{color:#b6c0c7;font-size:15px;max-width:480px}
+.faceplate .btn.primary{background:#20BBD2;color:#07171a;border-color:#20BBD2}
+.power{border-color:rgba(32,187,210,.5);width:132px;height:132px}
+.power svg{stroke:#20BBD2}.power span{color:#c1cbd1}
+.footer{margin-top:82px;padding:30px 0 38px;display:grid;grid-template-columns:1fr auto;align-items:center;row-gap:22px;border-color:var(--line2)}
+.footer-brand{display:flex;align-items:center;gap:18px}.footer-brand>span{font-size:12px;color:var(--dim)}
+.footer-links{display:flex;gap:22px;font-size:12.5px;color:var(--mut)}.footer-links a:hover{color:var(--brand)}
+.footer-copy{grid-column:1/-1;font-size:11.5px;color:var(--dim);padding-top:14px;border-top:1px solid var(--line)}
+
+
+/* Focused marketing refinements */
+.dockbit-logo{width:31px;height:31px;object-fit:contain;display:block;flex:none}
+.logo{gap:9px}
+
+.hero{grid-template-columns:1.08fr .92fr;gap:64px;padding:76px 0 104px;min-height:610px}
+.hero h1{font-size:clamp(48px,6.1vw,78px);line-height:1.035;letter-spacing:-.075em;max-width:720px;margin-top:22px}
+.hero h1 em{display:inline-block;position:relative;color:var(--brand);font-style:normal}
+.hero h1 em::after{content:"";position:absolute;left:2px;right:3px;bottom:-7px;height:7px;background:var(--bit);border-radius:8px;transform:scaleX(.82);transform-origin:left}
+.hero p{font-size:16px;max-width:460px;margin-top:26px}
+.hero .install{max-width:490px;margin-top:28px;box-shadow:0 12px 35px rgba(16,24,32,.06)}
+.hero .stores{margin-top:20px}
+.rack-wrap{min-height:430px;align-items:center;padding:22px 0}
+.rack{width:min(410px,100%);transform:perspective(900px) rotateY(-8deg) rotateX(2deg);box-shadow:22px 24px 0 rgba(32,187,210,.09),0 35px 80px rgba(16,24,32,.16)}
+.rack .unit{height:46px}.rack .unit.u2{height:84px}
+.hang{left:-22px;top:14%;padding:14px 17px}.hang b{font-size:24px}
+.rack-wrap::before{content:"";position:absolute;width:390px;height:390px;border:1px solid rgba(32,187,210,.22);border-radius:50%;right:0;top:50%;transform:translateY(-50%);box-shadow:0 0 0 34px rgba(32,187,210,.035),0 0 0 68px rgba(32,187,210,.025)}
+.mobile-rework{grid-template-columns:.9fr 1.1fr;gap:56px;align-items:center;padding-top:26px;padding-bottom:26px}
+.mobile-copy{max-width:460px}.mobile-copy .h2{font-size:clamp(34px,4vw,52px)}
+.phone-stage-new{height:590px;align-items:center;justify-content:center;overflow:visible}
+.mobile-backdrop{position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(32,187,210,.15),rgba(32,187,210,.035) 58%,transparent 70%);border:1px solid rgba(32,187,210,.15)}
+.phone-new{width:276px;height:548px;padding:9px;border-radius:38px;transform:rotate(3deg);border:1px solid #34434d;background:#101820;box-shadow:20px 24px 0 rgba(16,24,32,.06),0 36px 80px rgba(16,24,32,.24)}
+.phone-new::before{top:12px;width:78px;height:17px;margin-left:-39px;background:#05090c;z-index:2}
+.phone-new::after{display:none}
+.screen-new{position:relative;padding:34px 14px 54px;background:#f8fbfc;border-radius:30px;color:#101820}
+.app-top{height:28px;display:flex;align-items:center;gap:7px;font-size:11px}.app-logo{width:17px;height:17px;border-radius:5px;background:#20BBD2;display:grid;place-items:center}.app-logo i{width:7px;height:9px;border:2px solid #10232a;border-left:0;border-radius:0 8px 8px 0}
+.app-avatar{margin-left:auto;width:23px;height:23px;border-radius:50%;background:#e7f4f6;display:grid;place-items:center;font-size:10px;font-weight:700;color:#087f91}
+.app-greeting{margin:18px 0 13px}.app-greeting small,.app-section-label{font:9px var(--mono);letter-spacing:.08em;color:#78868e}.app-greeting h3{font-size:20px;letter-spacing:-.05em;margin:5px 0 3px}.app-greeting p{font-size:10px;color:#6d7a82;margin:0}
+.app-health{padding:11px;border:1px solid #dce9ec;background:#fff;border-radius:10px}.app-health>div{display:flex;align-items:center;gap:6px;font-size:10px}.health-dot{width:7px;height:7px;border-radius:50%;background:#19b58a;box-shadow:0 0 0 4px #e4f8f1}.app-health small{display:block;margin:7px 0 0 13px;font-size:9px;color:#7b8991}
+.app-section-label{display:flex;justify-content:space-between;margin:17px 1px 8px}.app-section-label span{color:#078fa5}
+.machine-card{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e4ecef;border-radius:9px;padding:9px;margin-bottom:6px}.machine-icon{width:27px;height:27px;border-radius:7px;background:#e4f7fa;color:#078fa5;display:grid;place-items:center;font-size:11px;font-weight:700}.machine-icon.alt{background:#fff1dc;color:#bd760b}.machine-card b,.app-activity b{display:block;font-size:10px}.machine-card small,.app-activity small{display:block;font-size:8.5px;color:#839098;margin-top:3px}.machine-state{margin-left:auto;color:#159c79;font-size:8px;font-weight:600}
+.app-activity{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e4ecef;border-radius:9px;padding:10px}.app-activity>i{width:7px;height:7px;border-radius:50%;background:#20BBD2}
+.app-nav{position:absolute;bottom:0;left:0;right:0;height:48px;border-top:1px solid #e4ecef;background:#fff;border-radius:0 0 29px 29px;display:flex;justify-content:space-around;align-items:center;color:#8a969d;font-size:14px}.app-nav span{text-align:center;line-height:1}.app-nav small{display:block;font-size:7px;margin-top:3px}.app-nav .selected{color:#078fa5}
+.mobile-float{position:absolute;z-index:3;display:flex;align-items:center;gap:9px;padding:11px 13px;background:#fff;border:1px solid #dce7eb;border-radius:12px;box-shadow:0 18px 44px rgba(16,24,32,.13);min-width:205px}.mobile-float b{display:block;font-size:11px}.mobile-float small{display:block;color:#7c8990;font-size:9px;margin-top:3px}.float-icon,.float-check{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:#fff1dc;color:#b8750b;font-weight:700}.float-check{background:#e4f8f1;color:#149b76}.float-alert{top:115px;right:-8px;transform:rotate(2deg)}.float-alert>i{width:6px;height:6px;border-radius:50%;background:#f39c12;margin-left:auto}.float-release{bottom:103px;left:-12px;transform:rotate(-2deg)}.mobile-caption{position:absolute;bottom:12px;right:5px;font:9px var(--mono);letter-spacing:.15em;color:#819098}
+.mobile-actions{margin-top:24px}.mobile-actions div{padding:13px 0}.mobile-actions span{font-size:13px}
+.tour{padding:20px 22px 24px}.tour-body{grid-template-columns:.62fr 1.38fr;gap:46px}.tour .switchbank{padding-bottom:16px}.tour .sw{min-width:90px;flex:1 1 90px;min-height:52px;flex-direction:row;align-items:center;justify-content:flex-start}.tour .sw .tog{flex:none}.tour-detail{min-width:0}.track{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid rgba(255,255,255,.15)}.track button{border:0;background:transparent;text-align:left;padding:0 8px 13px 0;color:#91a0a8;font-size:12px;cursor:pointer}.track button span{display:block;font:10px var(--mono);margin-bottom:5px;color:#20BBD2}.track button.active{color:#fff}.track button.active::after{content:"";position:absolute;left:0;right:12px;bottom:-1px;height:2px;background:#20BBD2}.step-detail{margin-top:18px;min-height:148px;padding:22px 24px;background:#19232b;border:1px solid rgba(255,255,255,.12);border-radius:12px}.step-detail>span{font:10px var(--mono);letter-spacing:.1em;color:#20BBD2}.step-detail h4{font-size:20px;letter-spacing:-.035em;margin:10px 0 7px;color:#fff}.step-detail p{font-size:13px;line-height:1.65;color:#b6c0c7;margin:0;max-width:570px}
+
+/* RESPONSIVE */
+@media(max-width:960px){
+  .navlinks{display:none}
+  .hero,.head,.model,.bays,.strata-grid,.guard,.mobile,.tour-body{grid-template-columns:1fr}
+  .head{gap:0}
+  .hero{padding:40px 0 70px;gap:36px;min-height:0}.hero h1{font-size:clamp(42px,11vw,62px)}.rack-wrap{min-height:360px}.rack-wrap::before{width:300px;height:300px}
+  .rack-wrap{justify-content:center}
+  .sec{padding:64px 0}
+  .pipe{grid-template-columns:1fr}
+  .ports{grid-template-columns:1fr 1fr}
+  .merge{height:28px;margin:0 auto;width:1.5px;background:var(--brand)}
+  .merge::before,.merge::after{display:none}
+  .stages{grid-template-columns:1fr 1fr;gap:6px}
+  .stage,.stage:first-child,.stage.dk{border-width:1px;border-radius:12px;min-height:0}
+  .bays{margin-top:56px}
+  .verbs,.callouts,.portgrid{grid-template-columns:1fr 1fr}
+  .switchbank{grid-template-columns:repeat(4,1fr)}
+  .stairs{grid-template-columns:1fr}
+  .stair{height:auto;margin-left:calc(var(--i) * 12px);border-right:1.5px solid var(--ink);border-radius:0}
+  .stair.dk{border-radius:0 0 14px 0}
+  .stair code{margin-top:8px}
+  .backpanel{grid-template-columns:1fr}
+  .fan{width:80px}
+  .faceplate{grid-template-columns:1fr;padding:36px 30px 56px}
+  .mobile .phone-stage{order:0}.mobile{gap:42px}.mobile-orbit{max-width:100%}.phone-stage-new{height:540px}.phone-new{transform:scale(.9) rotate(2deg)}.float-alert{right:-4px;top:70px}.float-release{left:-4px;bottom:60px}.mobile-caption{bottom:0}
+}
+@media(max-width:600px){
+  .wrap{width:calc(100% - 32px)}
+  .nav{padding:0 16px}
+  .chaos{min-height:0;padding:14px 14px 40px;display:flex;flex-wrap:wrap;gap:6px}
+  .chip{position:static;transform:none!important;white-space:normal}
+  .flow{grid-template-columns:1fr 1fr}
+  .flow div:nth-child(2)::after{display:none}
+  .ports,.stages,.chassis,.verbs,.callouts,.chips,.portgrid,.ringbox{grid-template-columns:1fr}
+  .rings{max-width:260px;margin:0 auto}
+  .track{grid-template-columns:1fr 1fr;row-gap:10px}
+  .switchbank{grid-template-columns:1fr 1fr}.track{grid-template-columns:1fr 1fr;row-gap:14px}.tour-body{gap:24px}.step-detail{min-height:130px}
+  .facts li{grid-template-columns:1fr;gap:2px}
+  .layer{flex-direction:column;align-items:flex-start}
+  .layer span{text-align:left}
+  .tape{border-radius:16px;flex-wrap:wrap}
+  .tape-mid{flex-basis:100%;order:3}
+  .restore{margin-left:auto}
+  .ticks{grid-template-columns:repeat(45,1fr)}
+  .ticks i:nth-child(n+46){display:none}
+  .toast{width:200px}.phone-stage{height:430px}.phone{width:205px;height:410px}.orbit-a{width:320px;height:250px}.orbit-b{width:290px;height:330px}.mobile-actions div{gap:12px}.tour{padding:12px}.tour-body{padding:22px 2px 0;gap:20px}
+  .toast.t1{right:-6px}.toast.t2{left:-6px}
+  .faceplate::before,.faceplate::after{display:none}
+  .footer{grid-template-columns:1fr;gap:18px}.footer-links{flex-wrap:wrap;gap:14px 20px}.footer-copy{grid-column:auto}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="logo" href="#top" aria-label="DockBit home"><img class="dockbit-logo" src="data:image/png;base64,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" alt="">DockBit</a>
+  <div class="navlinks"><a href="#deploy">Deploy</a><a href="#machines">Machines</a><a href="#domains">Domains</a><a href="#data">Backups</a><a href="#mobile">Mobile</a><a href="#tour">Product tour</a></div>
+  <a class="btn primary" href="#start">Get started</a>
+</nav>
+
+<main id="top">
+
+<!-- HERO -->
+<section class="wrap hero">
+  <div>
+    <div class="eyebrow">Your own infrastructure. One control panel.</div>
+    <h1>Your servers.<br>Your apps.<br><em>One place</em> to run them.</h1>
+    <p>Deploy apps, run databases, manage domains and protect your data on servers you control. DockBit brings the day-to-day work of self-hosting into one place.</p>
+    <div class="install"><span><b>$</b> curl -fsSL https://dockbit.clickbit.com.au/install.sh | sudo bash</span><button type="button" id="copyBtn">copy</button></div>
+    <div class="stores">
+      <a class="badge" href="#APP_STORE_URL"><img src="badges/app-store.svg" alt="Download on the App Store"><span class="fb"><small>Download on the</small><b>App Store</b></span></a>
+      <a class="badge" href="#PLAY_STORE_URL"><img src="badges/google-play.svg" alt="Get it on Google Play"><span class="fb"><small>GET IT ON</small><b>Google Play</b></span></a>
+    </div>
+  </div>
+  <div class="rack-wrap">
+    <div class="rack dk" aria-label="Illustration of a server rack running apps">
+      <div class="unit"><i class="led on"></i>storefront<span class="src">git push</span></div>
+      <div class="unit"><i class="led on d2"></i>postgres<span class="src">marketplace</span></div>
+      <div class="unit u2"><i class="led on d3"></i>immich<span class="src">compose</span></div>
+      <div class="unit"><i class="led"></i>plausible<span class="src">stopped</span></div>
+      <div class="unit"><i class="led on"></i>vaultwarden<span class="src">marketplace</span></div>
+      <div class="unit empty">+ room for the next one</div>
+      <div class="rack-feet"><i></i><i></i></div>
+    </div>
+    <div class="hang"><b>14 apps</b>on 3 machines<br>in one closet</div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="wrap sec" style="padding-top:20px">
+  <div class="head">
+    <div><div class="eyebrow">The month after the first deploy</div><h2 class="h2">Self-hosting is easy.<br>Running it next month <em>isn't.</em></h2></div>
+    <p class="lede">The first deploy takes an afternoon. Then come the certificates, the backups, the second machine and the friend who needs access. DockBit puts all of it on one page.</p>
+  </div>
+  <div class="model">
+    <div class="chaos" aria-label="Scattered manual tasks">
+      <span class="chip" style="top:24px;left:22px;transform:rotate(-3deg)">vim /etc/nginx/sites-enabled/store</span>
+      <span class="chip hot" style="top:66px;left:250px;transform:rotate(4deg)">certbot renew --dry-run</span>
+      <span class="chip" style="top:104px;left:40px;transform:rotate(2deg)">crontab -e # backup at 3?</span>
+      <span class="chip" style="top:150px;left:220px;transform:rotate(-4deg)">docker compose up -d</span>
+      <span class="chip hot" style="top:188px;left:28px;transform:rotate(-2deg)">rsync -a /data nas:/backup</span>
+      <span class="chip" style="top:228px;left:250px;transform:rotate(3deg)">ssh root@10.0.0.4</span>
+      <span class="chaos-label">before · 11 tabs, 3 SSH sessions</span>
+    </div>
+    <div class="calm dk">
+      <div class="top"><span>dockbit · the whole model</span><span>after</span></div>
+      <div class="flow">
+        <div>Machines<small>your servers</small></div>
+        <div>Projects<small>one per client</small></div>
+        <div>Apps<small>site, API, DB</small></div>
+        <div>Domains<small>the addresses</small></div>
+      </div>
+      <ul>
+        <li>SSL certificate<span>auto-renews</span></li>
+        <li>Nightly backup<span>gaps flagged</span></li>
+        <li>Deploy on push<span class="ok">live in ~30s</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- DEPLOY -->
+<section class="wrap sec" id="deploy" style="padding-top:0">
+  <div class="head">
+    <div><div class="eyebrow">01 · Deploy</div><h2 class="h2">Plug in a source.<br>Get a <em>running</em> service.</h2></div>
+    <p class="lede">Push to Git and it's live in about 30 seconds. The new version must pass its health check before the old one stops, and failed rollouts roll themselves back.</p>
+  </div>
+  <div class="pipe">
+    <div class="ports">
+      <div class="port on"><i class="jack"></i>Git repo<small>push</small></div>
+      <div class="port"><i class="jack"></i>Docker image<small>pull</small></div>
+      <div class="port"><i class="jack"></i>Compose<small>yaml</small></div>
+      <div class="port"><i class="jack"></i>Marketplace<small>1-click</small></div>
+    </div>
+    <div class="merge" aria-hidden="true"></div>
+    <div class="stages">
+      <div class="stage"><span class="n">01</span><h4>Clone</h4><p>Branch, monorepo folder, build args.</p><code>main @ 4f2c1a</code></div>
+      <div class="stage"><span class="n">02</span><h4>Build</h4><p>Dockerfile, or Nixpacks if there isn't one.</p><code>41s</code></div>
+      <div class="stage"><span class="n">03</span><h4>Push</h4><p>Stored in your private registry.</p><code>v38 · v37 kept</code></div>
+      <div class="stage"><span class="n">04</span><h4>Health check</h4><p>Old container stops only after this passes.</p><code>GET /health 200</code></div>
+      <div class="stage dk"><span class="n">05 · live</span><h4>Running</h4><p>Logs, stats, terminal, one-click rollback.</p><code>zero downtime</code></div>
+    </div>
+  </div>
+
+  <div class="bays">
+    <div>
+      <div class="eyebrow">Marketplace</div>
+      <h2 class="h2">Or slide in something that <em>already works.</em></h2>
+      <ul class="facts">
+        <li><span>Passwords</span>Generated on install and handed back to you</li>
+        <li><span>Your own</span>Paste a Compose file to add any app</li>
+        <li><span>Catalog packs</span>Versioned packs update without a release</li>
+        <li><span>Escape hatch</span>Search Docker Hub directly</li>
+      </ul>
+    </div>
+    <div class="chassis dk">
+      <a class="sled" href="#tour"><i class="grip"></i><div><b>Supabase</b><small>backend suite</small></div><i class="led on"></i><span class="go">install →</span></a>
+      <a class="sled" href="#tour"><i class="grip"></i><div><b>Postgres</b><small>database</small></div><i class="led on d2"></i><span class="go">install →</span></a>
+      <a class="sled" href="#tour"><i class="grip"></i><div><b>Immich</b><small>photos</small></div><i class="led on d3"></i><span class="go">install →</span></a>
+      <a class="sled" href="#tour"><i class="grip"></i><div><b>Plausible</b><small>analytics</small></div><i class="led"></i><span class="go">install →</span></a>
+      <a class="sled" href="#tour"><i class="grip"></i><div><b>Vaultwarden</b><small>passwords</small></div><i class="led"></i><span class="go">install →</span></a>
+      <a class="sled" href="#tour"><i class="grip"></i><div><b>Ollama</b><small>local AI</small></div><i class="led"></i><span class="go">install →</span></a>
+      <a class="sled" href="#tour"><i class="grip"></i><div><b>Home Assistant</b><small>home</small></div><i class="led"></i><span class="go">install →</span></a>
+      <div class="sled blank"><i class="grip"></i><div><b>+ 20 more</b><small>or your own compose</small></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- MACHINES -->
+<section class="dk band-dk sec" id="machines">
+  <div class="wrap">
+    <div class="head">
+      <div><div class="eyebrow">02 · Machines &amp; network</div><h2 class="h2">Three boxes in a closet,<br>run like <em>one platform.</em></h2></div>
+      <p class="lede">Run one bootstrap script and a server joins. Several machines act as one Swarm cluster with live CPU, memory and disk, placement rules and an SSH terminal in the browser.</p>
+    </div>
+    <div class="sky-scroll">
+      <div class="skyline">
+        <div class="overlay"><span>overlay network · tailnet</span></div>
+        <div class="box" style="height:130px;--drop:162px"><div class="host">edge-01</div><span class="role">worker</span><div class="meter">CPU 24%<i style="--v:24%"></i></div></div>
+        <div class="box" style="height:200px;--drop:92px"><div class="host">core-01</div><span class="role">manager</span><div class="meter">CPU 41%<i style="--v:41%"></i></div><div class="meter">RAM 21 / 64 GB<i style="--v:33%"></i></div></div>
+        <div class="box" style="height:262px;--drop:30px"><div class="host">storage-01</div><span class="role">build · zfs</span><div class="meter">CPU 18%<i style="--v:18%"></i></div><div class="slots"><i></i><i></i><i></i><i></i></div></div>
+        <div class="box" style="height:104px;--drop:188px"><div class="host">pi-garage</div><span class="role">parked</span></div>
+        <div class="box add" style="height:80px">+ add machine</div>
+      </div>
+    </div>
+    <div class="verbs">
+      <div class="verb"><b>Place</b><p>Decide which machine each app runs on, by label or role.</p></div>
+      <div class="verb"><b>Guard</b><p>Resource Guard sets limits and alerts at 85% and 90% on small boxes.</p></div>
+      <div class="verb"><b>Upgrade</b><p>OS and Docker updates drain each node first, leader last.</p></div>
+      <div class="verb"><b>Repair</b><p>Overlay network health checks with one-click repair.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- DOMAINS -->
+<section class="wrap sec" id="domains">
+  <div class="head">
+    <div><div class="eyebrow">03 · Public access</div><h2 class="h2">Every part of a URL has a job.<br>DockBit does <em>each one.</em></h2></div>
+    <p class="lede">Type a hostname, pick the app. The DNS record and a free SSL certificate happen on their own, with no router setup if you use a tunnel.</p>
+  </div>
+  <div class="url-big" aria-label="https://store.example.com/health">
+    <span class="seg a"><sup>1</sup>https://</span><span class="seg"><sup>2</sup>store</span><span class="seg dim">.</span><span class="seg"><sup>3</sup>example.com</span><span class="seg"><sup>4</sup>/health</span>
+  </div>
+  <div class="callouts">
+    <div class="call"><span class="n">1 · SSL</span><h4>Free, auto-renewing</h4><p>Let's Encrypt on attach, with TLS-expiry warnings.</p></div>
+    <div class="call"><span class="n">2 · Routing</span><h4>Proxy or tunnel</h4><p>Reverse proxy, or a Cloudflare Tunnel with no open ports.</p></div>
+    <div class="call"><span class="n">3 · DNS</span><h4>Records handled</h4><p>Cloudflare and Hostinger zones, plus client-owned domains.</p></div>
+    <div class="call"><span class="n">4 · Uptime</span><h4>You define healthy</h4><p>HTTP, keyword, TCP, ping or DNS checks and public status pages.</p></div>
+  </div>
+  <div class="uptime">
+    <div class="row"><span><b>store.example.com</b> · 90 days</span><span>1 incident, acknowledged · <b>99.98%</b></span></div>
+    <div class="ticks" id="ticks"></div>
+    <div class="row"><span>Aug 10</span><span>today</span></div>
+  </div>
+</section>
+
+<!-- DATA -->
+<section class="band-lt sec" id="data">
+  <div class="wrap">
+    <div class="strata-grid">
+      <div>
+        <div class="eyebrow">04 · Storage &amp; backups</div>
+        <h2 class="h2">Know which layer your data lives on, and <em>how to get it back.</em></h2>
+        <p class="lede">Every backup by project, coverage gaps flagged, failing jobs explained. Restore in one click, or run a test restore first.</p>
+      </div>
+      <div>
+        <div class="ground-app"><span>storefront</span><span>postgres</span></div>
+        <div class="layer l1"><div><b>Volumes</b><small>folders that survive redeploys</small></div><span>82 GB</span></div>
+        <div class="layer l2"><div><b>NAS &amp; ZFS</b><small>Synology, QNAP, snapshots</small></div><span>hourly</span></div>
+        <div class="layer l3"><div><b>Object storage</b><small>S3 · R2 · MinIO</small></div><span>nightly · 30 days kept</span></div>
+        <div class="layer l4"><div><b>Restore</b><small>pick a point, test it, bring it back</small></div><span>one click</span></div>
+      </div>
+    </div>
+    <div class="tape">
+      <i class="reel" id="reelA"></i>
+      <div class="tape-mid">
+        <div class="tape-out"><span>Restore point · <b id="tapeLabel">Today 03:00</b></span><span id="tapeMeta">nightly · 4.8 GB</span></div>
+        <input type="range" min="0" max="23" value="23" id="tape" aria-label="Choose a snapshot to restore">
+      </div>
+      <i class="reel" id="reelB"></i>
+      <button class="restore" type="button" id="restoreBtn">Test restore</button>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY + SAGE -->
+<section class="wrap sec" id="security">
+  <div class="head">
+    <div><div class="eyebrow">05 · Security &amp; Sage</div><h2 class="h2">Access works in rings.<br><em>Every ring</em> writes to the log.</h2></div>
+    <p class="lede">Standalone sign-in with no outside provider, secrets encrypted with AES-256-GCM, and an assistant that proposes changes but waits for your yes.</p>
+  </div>
+  <div class="guard">
+    <div class="panel">
+      <h3>Who can touch what</h3>
+      <p class="sub">Hover a ring to see what it covers.</p>
+      <div class="ringbox">
+        <div class="rings" id="rings">
+          <div class="ring r0" data-r="0"><span>audit</span></div>
+          <div class="ring r1" data-r="1"><span>people</span></div>
+          <div class="ring r2" data-r="2"><span>sign-in</span></div>
+          <div class="ring r3" data-r="3"><span>keys</span></div>
+          <div class="core">secrets</div>
+        </div>
+        <ul class="ring-list">
+          <li data-r="1"><b>People</b>Invite by email, give each a role</li>
+          <li data-r="2"><b>Sign-in</b>Passkeys, TOTP, trusted devices</li>
+          <li data-r="3"><b>Keys</b>API keys, SSH keys, signed webhooks</li>
+          <li data-r="0"><b>Audit</b>Who changed what, and when</li>
+        </ul>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>Sage reads the room. You hold <span style="color:var(--brand)">the key.</span></h3>
+      <p class="sub">Built-in AI that reads your platform and proposes fixes.</p>
+      <div class="msgs">
+        <div class="msg you"><div class="who">you</div>Why did storefront's deploy fail?</div>
+        <div class="msg sage"><div class="who">sage</div>The health check timed out. Postgres hit its memory limit after last night's import. Raise it?
+<div class="diff"><span class="m">  postgres.memory: 2G</span>
+<span class="p">+ postgres.memory: 4G</span></div></div>
+      </div>
+      <div class="gate" id="gate">
+        <span class="pol"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>needs your approval</span>
+        <div class="btns"><button type="button" id="decline">Decline</button><button type="button" class="yes" id="approve">Approve</button></div>
+        <span class="done"><i class="led on"></i><span id="doneText">Applied · logged</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MOBILE APP -->
+<section class="band-lt sec" id="mobile">
+  <div class="wrap mobile mobile-rework">
+    <div class="mobile-copy">
+      <div class="eyebrow">06 · DockBit mobile</div>
+      <h2 class="h2">Your infrastructure.<br><em>Within reach.</em></h2>
+      <p class="lede">A quick view of your servers when you are away from your desk. Check what is healthy, catch an alert and take action without opening a laptop.</p>
+      <div class="mobile-actions">
+        <div><b>01</b><span>Check service and machine status</span></div>
+        <div><b>02</b><span>See alerts as they happen</span></div>
+        <div><b>03</b><span>Restart a service or roll back a release</span></div>
+      </div>
+      <div class="stores">
+        <a class="badge" href="#APP_STORE_URL"><img src="badges/app-store.svg" alt="Download on the App Store"><span class="fb"><small>Download on the</small><b>App Store</b></span></a>
+        <a class="badge" href="#PLAY_STORE_URL"><img src="badges/google-play.svg" alt="Get it on Google Play"><span class="fb"><small>GET IT ON</small><b>Google Play</b></span></a>
+      </div>
+    </div>
+    <div class="phone-stage phone-stage-new" aria-label="DockBit mobile app preview">
+      <div class="mobile-backdrop"></div>
+      <div class="phone dk phone-new">
+        <div class="screen screen-new">
+          <div class="app-top"><span class="app-logo"><i></i></span><b>DockBit</b><span class="app-avatar">F</span></div>
+          <div class="app-greeting"><small>OVERVIEW</small><h3>Good morning</h3><p>All systems are looking good.</p></div>
+          <div class="app-health"><div><span class="health-dot"></span><b>All systems operational</b></div><small>3 machines · 12 services</small></div>
+          <div class="app-section-label">YOUR MACHINES <span>View all</span></div>
+          <div class="machine-card"><div class="machine-icon">S</div><div><b>Production</b><small>Online · 6 services</small></div><span class="machine-state">Online</span></div>
+          <div class="machine-card"><div class="machine-icon alt">W</div><div><b>Web node</b><small>Online · 4 services</small></div><span class="machine-state">Online</span></div>
+          <div class="app-section-label">RECENT ACTIVITY</div>
+          <div class="app-activity"><i></i><div><b>Deployment completed</b><small>storefront · just now</small></div></div>
+          <div class="app-nav"><span class="selected">⌂<small>Home</small></span><span>▦<small>Apps</small></span><span>◉<small>Alerts</small></span><span>⚙<small>Settings</small></span></div>
+        </div>
+      </div>
+      <div class="mobile-float float-alert"><span class="float-icon">!</span><div><b>Service alert</b><small>API response time is high</small></div><i></i></div>
+      <div class="mobile-float float-release"><span class="float-check">✓</span><div><b>Release is live</b><small>Health check passed</small></div></div>
+      <span class="mobile-caption">DOCKBIT · MOBILE</span>
+    </div>
+  </div>
+</section>
+
+<!-- TOUR -->
+<section class="wrap sec" id="tour">
+  <div class="head">
+    <div><div class="eyebrow">07 · Product tour</div><h2 class="h2">Choose a task.<br>See <em>how it works.</em></h2></div>
+    <p class="lede">Select an area of DockBit. The steps below show what you actually do, from the first click to the finished result.</p>
+  </div>
+  <div class="tour dk">
+    <div class="switchbank" id="featureNav"></div>
+    <div class="tour-body">
+      <div><h3 id="tourTitle"></h3><p class="td" id="tourDesc"></p></div>
+      <div class="tour-detail">
+        <div class="track" id="tourTabs"></div>
+        <div class="step-detail" aria-live="polite"><span id="detailKicker">STEP 01</span><h4 id="detailTitle">Choose a source</h4><p id="detailCopy"></p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- START -->
+<section class="wrap sec" id="start" style="padding-top:0">
+  <div class="head">
+    <div><div class="eyebrow">08 · Start here</div><h2 class="h2">Six steps from blank server<br>to <em>production.</em></h2></div>
+    <p class="lede">The first install takes about five minutes, and the first user becomes the owner. Each step unlocks the next.</p>
+  </div>
+  <div class="stairs">
+    <div class="stair" style="--i:0"><span class="n">01</span><h4>Install</h4><p>One command, then open port 3000.</p><code>~5 min</code></div>
+    <div class="stair" style="--i:1"><span class="n">02</span><h4>Project</h4><p>One per client or product.</p><code>acme</code></div>
+    <div class="stair" style="--i:2"><span class="n">03</span><h4>App</h4><p>Git, image, database or Marketplace.</p><code>v1 live</code></div>
+    <div class="stair" style="--i:3"><span class="n">04</span><h4>Domain</h4><p>DNS and HTTPS happen automatically.</p><code>store.acme.com</code></div>
+    <div class="stair" style="--i:4"><span class="n">05</span><h4>Safety nets</h4><p>Uptime monitor, alerts, backup schedule.</p><code>Slack · Telegram</code></div>
+    <div class="stair dk" style="--i:5"><span class="n">06 · top</span><h4>Operate</h4><p>Every push deploys. Rollback is one click.</p><code>you're in production</code></div>
+  </div>
+</section>
+
+<!-- BEYOND -->
+<section class="wrap sec" style="padding-top:0">
+  <div class="head">
+    <div><div class="eyebrow">09 · Beyond the basics</div><h2 class="h2">Turn it around.<br>There's more <em>on the back.</em></h2></div>
+    <p class="lede">Advanced tools that stay out of the way until your setup grows into them.</p>
+  </div>
+  <div class="backpanel dk">
+    <div><div class="fan" aria-hidden="true"></div><div class="fan-label">rear i/o</div></div>
+    <div class="portgrid">
+      <div class="pt rj"><div class="hole"></div><b>VMs</b><span>Incus VMs and system containers</span></div>
+      <div class="pt usb"><div class="hole"></div><b>Workspaces</b><span>Dev environments cloned from a repo</span></div>
+      <div class="pt hd"><div class="hole"></div><b>Releases</b><span>.deb, OS images, notarized Mac builds</span></div>
+      <div class="pt rd"><div class="hole"></div><b>Failover</b><span>Network groups and volume replication</span></div>
+      <div class="pt rj"><div class="hole"></div><b>API &amp; CLI</b><span>Every UI action, scriptable</span></div>
+      <div class="pt usb"><div class="hole"></div><b>Takeover</b><span>Adopt running Compose and tunnels</span></div>
+      <div class="pt hd"><div class="hole"></div><b>Self-update</b><span>One-click update and rollback</span></div>
+      <div class="pt rd"><div class="hole"></div><b>Move DockBit</b><span>Migrate the platform to new hardware</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL -->
+<section class="wrap">
+  <div class="faceplate dk">
+    <div>
+      <h2>Start with <em>one</em> machine.</h2>
+      <p>Install DockBit on a server you control. Add your first app and manage it from one place.</p>
+      <div class="row">
+        <a class="btn primary" href="#start">Get started</a>
+        <a class="badge" href="#APP_STORE_URL"><img src="badges/app-store.svg" alt="Download on the App Store"><span class="fb"><small>Download on the</small><b>App Store</b></span></a>
+        <a class="badge" href="#PLAY_STORE_URL"><img src="badges/google-play.svg" alt="Get it on Google Play"><span class="fb"><small>GET IT ON</small><b>Google Play</b></span></a>
+      </div>
+    </div>
+    <a class="power" href="#start" aria-label="Install DockBit">
+      <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#26CDE7" stroke-width="2" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>
+      <span>power on</span>
+    </a>
+  </div>
+</section>
+</main>
+
+<footer class="wrap footer"><div class="footer-brand"><a class="logo" href="#top"><img class="dockbit-logo" src="data:image/png;base64,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" alt="">DockBit</a><span>Self-hosted app platform.</span></div><div class="footer-links"><a href="#deploy">Deploy</a><a href="#machines">Machines</a><a href="#domains">Domains</a><a href="#mobile">Mobile</a><a href="#start">Get started</a></div><span class="footer-copy">© 2026 DockBit · Built by ClickBIT</span></footer>
+
+<script>
+/* store badges: use official artwork from /badges, fall back to a text pill until those files are added */
+document.querySelectorAll('.badge img').forEach(img=>{const fail=()=>img.parentNode.classList.add('fallback');if(img.complete&&!img.naturalWidth)fail();img.addEventListener('error',fail)});
+
+/* logo: the bit docks on load */
+
+
+document.getElementById('copyBtn').onclick=e=>{try{navigator.clipboard.writeText('curl -fsSL https://dockbit.clickbit.com.au/install.sh | sudo bash');e.target.textContent='copied'}catch(_){}setTimeout(()=>e.target.textContent='copy',1600)};
+
+(function(){const t=document.getElementById('ticks');let h='';for(let i=0;i<90;i++){const inc=i===57;const ht=inc?100:65+Math.round(Math.abs(Math.sin(i*1.7))*35);h+=`<i class="${inc?'inc':''}" style="height:${ht}%"></i>`}t.innerHTML=h})();
+
+(function(){const r=document.getElementById('tape'),l=document.getElementById('tapeLabel'),m=document.getElementById('tapeMeta'),a=document.getElementById('reelA'),b=document.getElementById('reelB'),btn=document.getElementById('restoreBtn');
+function upd(){const v=+r.value,ago=23-v,hr=(3-ago+48)%24,day=ago<=3?'Today':'Yesterday';l.textContent=`${day} ${String(hr).padStart(2,'0')}:00`;m.textContent=hr===3?'nightly · 4.8 GB':`hourly snapshot · ${(0.2+((v*7)%9)/10).toFixed(1)} GB`;a.style.transform=`rotate(${v*24}deg)`;b.style.transform=`rotate(${-v*24}deg)`;btn.textContent='Test restore'}
+r.oninput=upd;btn.onclick=()=>{btn.textContent='Restoring…';setTimeout(()=>btn.textContent='Verified ✓',900)};upd()})();
+
+(function(){const rings=[...document.querySelectorAll('#rings .ring')];document.querySelectorAll('.ring-list li').forEach(li=>{li.onmouseenter=()=>rings.forEach(r=>r.classList.toggle('lit',r.dataset.r===li.dataset.r));li.onmouseleave=()=>rings.forEach(r=>r.classList.remove('lit'))})})();
+
+(function(){const g=document.getElementById('gate'),t=document.getElementById('doneText');document.getElementById('approve').onclick=()=>{t.textContent='Applied · redeployed · logged';g.classList.add('approved')};document.getElementById('decline').onclick=()=>{t.textContent='Declined · nothing changed';g.classList.add('approved')}})();
+
+const data={
+ deploy:{name:'Deploy',title:'Deploy an app',desc:'Take an app from source code to a running service.',steps:[['Choose a source','Start with a Git repository, a Docker image, a Compose file or an app from the Marketplace. DockBit uses that source to create the service on your own machine.'],['Configure the app','Add environment variables, attach persistent storage, set resource limits and choose a health check. These settings travel with the app.'],['Build and release','DockBit builds the new version and starts it alongside the current one. The new version must pass its health check before traffic moves across.'],['Operate with confidence','Follow live logs, open a terminal, restart the service or roll back to the previous working release from the same app page.']]},
+ machine:{name:'Machines',title:'Bring a server under management',desc:'Connect the hardware you already own and decide what runs on it.',steps:[['Connect the server','Run the DockBit bootstrap command on your Linux server. Once it registers, the machine appears in your dashboard and can receive workloads.'],['See its condition','Open the machine to check live CPU, memory and disk use alongside its services and cluster connection.'],['Place your apps','Choose which machine should run an app. Use labels and node roles to keep workloads where they belong.'],['Maintain it safely','Prepare a node for maintenance, drain its workloads, apply the update and bring it back into service.']]},
+ domain:{name:'Domains',title:'Put an app on the internet',desc:'Give a service a public address, then keep an eye on it.',steps:[['Choose a hostname','Enter the domain you want and select the app that should receive its traffic.'],['Secure the connection','DockBit configures the route and can issue a free Let’s Encrypt certificate. Use a Cloudflare Tunnel when you do not want to expose a server port.'],['Set the health check','Monitor the address using HTTP, keyword, TCP, ping or DNS checks so you know when it stops responding.'],['Respond to incidents','Review the incident, certificate warning or status-page update in DockBit and follow the service back to its source.']]},
+ storage:{name:'Backups',title:'Protect app data',desc:'Keep persistent data backed up and make recovery a deliberate process.',steps:[['Choose where data lives','Attach a volume or use supported NAS and S3-compatible storage such as S3, R2 or MinIO.'],['Set a backup schedule','Choose when backups run and how long they are retained, using local or S3-compatible destinations.'],['Check backup coverage','See which apps are covered and which jobs have failed, so missing protection is visible.'],['Restore with confidence','Choose a restore point. Test the restore first when needed, then bring the data back to the service.']]},
+ security:{name:'Access',title:'Control who can do what',desc:'Manage team access and credentials from the platform you operate.',steps:[['Invite your team','Add people by email and assign an appropriate role instead of sharing one administrator login.'],['Protect sign-in','Use password sign-in with options such as TOTP, passkeys and trusted-device controls.'],['Manage credentials','Create API and SSH keys, and keep application secrets encrypted rather than scattering them across notes and terminals.'],['Review activity','Check sessions and recorded changes to understand who accessed the platform and what was changed.']]},
+ release:{name:'Mobile',title:'Manage mobile releases',desc:'Keep the mobile app release workflow close to the services it depends on.',steps:[['Register the app','Keep the app’s bundle identifier and its App Store and Google Play records together in DockBit.'],['Prepare signing','Manage the certificates, provisioning profiles and keys needed for a signed build.'],['Test a build','Move a build into TestFlight or Play testing and track its testing status and feedback.'],['Handle the release','Submit the build, follow review status and manage supported over-the-air updates.']]},
+ ai:{name:'Sage',title:'Ask Sage for help',desc:'Use AI to understand an issue and propose a change, with approval in your hands.',steps:[['Ask in plain language','Open Sage from the platform and describe what you need without first finding the right command or page.'],['Understand the issue','Sage can use relevant logs, health information and metrics to help explain what is happening.'],['Review a proposal','Get a concrete plan or an agent-assisted code change. Review the suggested diff or pull request before it moves forward.'],['Approve the action','Your configured policies and approval rules determine which actions can be applied. You remain in control of changes.']]},
+ platform:{name:'Platform',title:'Keep DockBit itself running',desc:'Install, update and move the control plane you use to manage everything else.',steps:[['Install DockBit','Run the installer on a server you control. The first account becomes the platform owner.'],['Update with a fallback','Apply a DockBit update from the platform, then use rollback if the health check does not pass.'],['Route notifications','Send platform alerts to the notification channels you have configured, including email and supported chat services.'],['Move to new hardware','Prepare a move, transfer the platform data, verify the new host and switch over.']]}
+};
+const nav=document.getElementById('featureNav'),tabs=document.getElementById('tourTabs'),title=document.getElementById('tourTitle'),desc=document.getElementById('tourDesc');
+const detailKicker=document.getElementById('detailKicker'),detailTitle=document.getElementById('detailTitle'),detailCopy=document.getElementById('detailCopy');
+let activeFeature='deploy',activeStep=0;
+Object.keys(data).forEach((key,i)=>{const button=document.createElement('button');button.type='button';button.className='sw'+(i===0?' active':'');button.innerHTML=`<i class="tog"></i>${data[key].name}`;button.addEventListener('click',()=>{nav.querySelectorAll('.sw').forEach(x=>x.classList.remove('active'));button.classList.add('active');render(key,0)});nav.appendChild(button)});
+function render(key,step=0){activeFeature=key;activeStep=step;const item=data[key];title.textContent=item.title;desc.textContent=item.desc;tabs.innerHTML='';item.steps.forEach((entry,i)=>{const button=document.createElement('button');button.type='button';button.className=i===step?'active':'';button.innerHTML=`<span>STEP 0${i+1}</span>${entry[0]}`;button.addEventListener('click',()=>render(key,i));tabs.appendChild(button)});detailKicker.textContent=`STEP 0${step+1} · ${item.name.toUpperCase()}`;detailTitle.textContent=item.steps[step][0];detailCopy.textContent=item.steps[step][1]}
+render('deploy',0);
+</script>
+</body>
+</html>
